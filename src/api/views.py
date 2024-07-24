@@ -1,4 +1,5 @@
 from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated
 from .models import User, Project, Contributor, Issue, Comment
 from .serializers import UserSerializer, ProjectSerializer, ContributorSerializer, IssueSerializer, CommentSerializer
 
@@ -7,6 +8,7 @@ from .serializers import UserSerializer, ProjectSerializer, ContributorSerialize
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
 
 class ProjectViewSet(viewsets.ModelViewSet):
     queryset = Project.objects.all()
