@@ -21,13 +21,20 @@ class ProjectPermission(permissions.BasePermission):
 
 class ContributorPermission(permissions.BasePermission):
     """
-    
+    Permission pour vérifier si l'utilisateur est contributeur du projet.
     """
     def has_permission(self, request, view):
-        # Assume view has project_id parameter or a similar way to get the project
-        project_id = view.kwargs.get('project_id') or view.kwargs.get('pk')
+        # verif que c'est bien l'auteur
+        return request.user and request.user.is_authenticated
+    
+    def has_object_permission(self, request, view, obj):
+        # permission de lecture uniquement
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        
+        # Pour les actions d'écriture, vérifiez si l'utilisateur est contributeur du projet associé
+        project_id = obj.project_id.id if isinstance(obj, Issue) else view.kwargs.get('project_id')
         if not project_id:
             return False
-        project = Project.objects.get(pk=project_id)
-        return Contributor.objects.filter(project_id=project, user_id=request.user).exists()
-    
+        
+        return Contributor.objects.filter(project_id=project_id, user_id=request.user).exists()

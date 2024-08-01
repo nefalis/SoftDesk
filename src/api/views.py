@@ -49,6 +49,7 @@ class IssueViewSet(viewsets.ModelViewSet):
     queryset = Issue.objects.all()
     serializer_class = IssueSerializer
     permission_classes = [IsAuthenticated, ContributorPermission]
+    
 
 class CommentViewSet(viewsets.ModelViewSet):
     queryset = Comment.objects.all()
