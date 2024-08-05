@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from .models import User, Project, Contributor, Issue, Comment
-from .serializers import UserSerializer, ProjectSerializer, ContributorSerializer, IssueSerializer, CommentSerializer
+from .serializers import UserSerializer, ProjectSerializer, ContributorSerializer, IssueSerializer, CommentSerializer, ProjectDetailSerializer
 from .permissions import ProjectPermission, ContributorPermission
 
 
@@ -14,6 +14,7 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
 
+
 class ProjectViewSet(viewsets.ModelViewSet):
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
@@ -22,6 +23,11 @@ class ProjectViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(author_id=self.request.user)
 
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def project_summary(self, request):
+        projects = Project.objects.all()
+        serializer = ProjectDetailSerializer(projects, many=True)
+        return Response(serializer.data)
 
 class ContributorViewSet(viewsets.ModelViewSet):
     queryset = Contributor.objects.all()
