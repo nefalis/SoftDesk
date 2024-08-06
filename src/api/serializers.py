@@ -18,16 +18,22 @@ class UserSerializer(serializers.ModelSerializer):
 
 class ProjectSerializer(serializers.ModelSerializer):
 
-    author = serializers.CharField(source='author_id.username', read_only=True)
-    contributors = serializers.SerializerMethodField()
+    author_id = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+    contributors_id = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), many=True)
 
     class Meta:
         model = Project
-        fields = ['id', 'title', 'description', 'author', 'type', 'contributors', 'time_created']
+        fields = ['id', 'title', 'description', 'author_id', 'type', 'contributor_id', 'time_created']
 
-    def get_contributors(self, obj):
-        contributors = Contributor.objects.filter(project_id=obj.id)
-        return [contrib.user_id.username for contrib in contributors]
+    def create(self, validated_data):
+        contributors = validated_data.pop('contributors', [])
+        project = super().create(validated_data)
+
+        # Ajout des contributeurs au projet
+        for contributor in contributors:
+            Contributor.objects.get_or_create(user_id=contributor, project_id=project)
+
+        return project
 
 
 class ContributorSerializer(serializers.ModelSerializer):
@@ -42,36 +48,31 @@ class ContributorSerializer(serializers.ModelSerializer):
         if Contributor.objects.filter(user_id=data['user_id'], project_id=data['project_id']).exists():
             raise serializers.ValidationError("Cet utilisateur est déjà contributeur dans ce projet")
         return data
-
+    
 class IssueSerializer(serializers.ModelSerializer):
-    contributor = serializers.CharField(source='contributor_id.user_id.username', read_only=True)
-    comments = serializers.SerializerMethodField()
-
     class Meta:
         model = Issue
-        fields = ['id', 'title', 'description', 'status', 'priority', 'tag', 'time_created', 'contributor', 'comments']
+        fields = ['id', 'title', 'description', 'contributor_id', 'project_id', 'status', 'priority', 'tag', 'time_created']
 
-    def get_comments(self, obj):
-        comments = Comment.objects.filter(issue_id=obj.id)
-        return CommentSerializer(comments, many=True).data
-    
 class CommentSerializer(serializers.ModelSerializer):
-    contributor = serializers.CharField(source='contributor_id.user_id.username', read_only=True)
-
     class Meta:
         model = Comment
-        fields = ['id', 'description', 'time_created', 'contributor']
-
+        fields = ['id', 'description', 'time_created', 'contributor_id', 'issue_id']
 
 class ProjectDetailSerializer(serializers.ModelSerializer):
     author = serializers.CharField(source='author_id.username', read_only=True)
     contributors = serializers.SerializerMethodField()
     issues = IssueSerializer(many=True, read_only=True, source='issue_set')
+    comments = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
-        fields = ['id', 'title', 'description', 'type', 'time_created', 'author', 'contributors', 'issues']
+        fields = ['id', 'title', 'description', 'type', 'time_created', 'author', 'contributors', 'issues', 'comments']
 
     def get_contributors(self, obj):
         contributors = Contributor.objects.filter(project_id=obj.id)
-        return [contrib.user_id.username for contrib in contributors]
+        return [{"id": contrib.user_id.id, "username": contrib.user_id.username} for contrib in contributors]
+
+    def get_comments(self, obj):
+        comments = Comment.objects.filter(issue_id__project_id=obj.id)
+        return CommentSerializer(comments, many=True).data

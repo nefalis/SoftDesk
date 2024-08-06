@@ -1,6 +1,7 @@
-from rest_framework import viewsets
+from rest_framework import viewsets, generics
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from .models import User, Project, Contributor, Issue, Comment
@@ -25,9 +26,12 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
     def project_summary(self, request):
+        paginator = PageNumberPagination()
+        paginator.page_size = 10
         projects = Project.objects.all()
-        serializer = ProjectDetailSerializer(projects, many=True)
-        return Response(serializer.data)
+        result_page = paginator.paginate_queryset(projects, request)
+        serializer = ProjectDetailSerializer(result_page, many=True)
+        return paginator.get_paginated_response(serializer.data)
 
 class ContributorViewSet(viewsets.ModelViewSet):
     queryset = Contributor.objects.all()
@@ -61,3 +65,7 @@ class CommentViewSet(viewsets.ModelViewSet):
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
     permission_classes = [IsAuthenticated, ContributorPermission]
+
+class ProjectListView(generics.ListAPIView):
+    queryset = Project.objects.all()
+    serializer_class = ProjectSerializer
