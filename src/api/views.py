@@ -15,6 +15,21 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
 
+    # Droit a l'oubli
+    @action(detail=True, methods=['delete'], permission_classes=[IsAuthenticated])
+    def delete_user(self, request, pk=None):
+        user = self.get_object()
+
+        # Supprimer les projets où l'utilisateur est l'auteur
+        Project.objects.filter(author_id=user).delete()
+        
+        # Supprimer les contributions de l'utilisateur
+        Contributor.objects.filter(user_id=user).delete()
+
+        # Supprimer l'utilisateur lui-même
+        user.delete()
+
+        return Response({'status': 'user deleted'}, status=status.HTTP_204_NO_CONTENT)
 
 class ProjectViewSet(viewsets.ModelViewSet):
     queryset = Project.objects.all()
