@@ -4,8 +4,10 @@ from .models import User, Project, Contributor, Issue, Comment
 
 
 class UserSerializer(serializers.ModelSerializer):
-    # le mot de passe est uniquement pour l'ecriture et ne sera pas affiché
-    password = serializers.CharField(write_only=True, required=False, validators=[validate_password])
+    # Le mot de passe est uniquement pour l'ecriture et ne sera pas affiché
+    password = serializers.CharField(
+        write_only=True, required=False, validators=[validate_password]
+        )
 
     class Meta:
         model = User
@@ -18,42 +20,36 @@ class UserSerializer(serializers.ModelSerializer):
             'can_be_contacted',
             'can_data_be_shared'
             ]
-        
+
     def validate_email(self, value):
         # Vérifie si l'email existe déjà pour un autre utilisateur
         if User.objects.filter(email=value).exists():
-            raise serializers.ValidationError("Un utilisateur avec cet email existe déjà.")
+            raise serializers.ValidationError(
+                "Un utilisateur avec cet email existe déjà"
+                )
         return value
 
     def create(self, validated_data):
+        # Crée un nouvel utilisateur avec le mot de passe haché.
         password = validated_data.pop('password', None)
         user = User.objects.create(**validated_data)
         if password:
             user.set_password(password)
             user.save()
         return user
-    
+
     def update(self, instance, validated_data):
+        # Met à jour un utilisateur et hache le mot de passe s'il est fourni
         password = validated_data.pop('password', None)
         user = super().update(instance, validated_data)
         if password:
             user.set_password(password)
             user.save()
 
-        return user
-
-    # pour que l'utilisateur puisse changer son mot de passe
-    def update(self, instance, validated_data):
-        password = validated_data.pop('password', None)
-        user = super().update(instance, validated_data)
-        if password:
-            user.set_password(password)
-            user.save()
         return user
 
 
 class ProjectSerializer(serializers.ModelSerializer):
-
     contributors = serializers.SerializerMethodField()
     author = serializers.SerializerMethodField()
 
@@ -70,19 +66,22 @@ class ProjectSerializer(serializers.ModelSerializer):
         ]
 
     def get_contributors(self, obj):
+        # Retourne la liste des contributeurs associés au projet
         contributors = obj.contributor_id.all()
-        return [{'id': contributor.id, 'username': contributor.username} for contributor in contributors]
+        return [
+            {'id': contributor.id, 'username': contributor.username}
+            for contributor in contributors
+            ]
 
     def get_author(self, obj):
+        # Retourne l'auteur du projet
         return {'id': obj.author_id.id, 'username': obj.author_id.username}
 
     def create(self, validated_data):
-        # Récupérer l'utilisateur authentifié depuis le contexte de la requête
+        # Récupérer l'utilisateur authentifié
         user = self.context['request'].user
-
-        # Supprimer 'author_id' de validated_data s'il est présent
         validated_data.pop('author_id', None)
-        
+
         # Créer le projet avec l'utilisateur comme auteur
         project = Project.objects.create(author_id=user, **validated_data)
 
@@ -108,7 +107,7 @@ class ContributorSerializer(serializers.ModelSerializer):
         }
 
     def validate(self, data):
-        # Utiliser initial_data pour accéder aux données brutes
+        # Vérifie que l'utilisateur n'est pas déjà contributeur de ce projet
         user_id = self.initial_data.get('user_id')
         project_id = self.initial_data.get('project_id')
 
@@ -121,15 +120,20 @@ class ContributorSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
-        # Création d'un nouveau contributeur
+        # Crée un nouveau contributeur pour le projet
         user = validated_data.get('user_id')
         project = validated_data.get('project_id')
         return Contributor.objects.create(user_id=user, project_id=project)
 
 
 class IssueSerializer(serializers.ModelSerializer):
-    author_name = serializers.CharField(source='author_id.username', read_only=True)
-    project_name = serializers.CharField(source='project_id.title', read_only=True)
+    author_name = serializers.CharField(
+        source='author_id.username', read_only=True
+        )
+    project_name = serializers.CharField(
+        source='project_id.title', read_only=True
+        )
+
     class Meta:
         model = Issue
         fields = [
@@ -151,15 +155,24 @@ class IssueSerializer(serializers.ModelSerializer):
         # Vérifier que l'utilisateur est un contributeur du projet
         project = data.get('project_id')
         user = self.context['request'].user
-        if not Contributor.objects.filter(project_id=project, user_id=user).exists():
-            raise serializers.ValidationError("Vous devez être contributeur du projet pour créer ou modifier une issue.")
-        
+        if not Contributor.objects.filter(
+            project_id=project, user_id=user
+        ).exists():
+            raise serializers.ValidationError(
+                "Vous devez être contributeur du projet"
+            )
+
         return data
 
 
 class CommentSerializer(serializers.ModelSerializer):
-    author_name = serializers.CharField(source='author_id.username', read_only=True)
-    issue_title = serializers.CharField(source='issue_id.title', read_only=True)
+    author_name = serializers.CharField(
+        source='author_id.username', read_only=True
+        )
+    issue_title = serializers.CharField(
+        source='issue_id.title', read_only=True
+        )
+
     class Meta:
         model = Comment
         fields = [
@@ -179,10 +192,15 @@ class CommentSerializer(serializers.ModelSerializer):
         issue = data.get('issue_id')
         project = issue.project_id
 
-        if not Contributor.objects.filter(project_id=project, user_id=user).exists():
-            raise serializers.ValidationError("Vous devez être contributeur du projet pour ajouter un commentaire.")
+        if not Contributor.objects.filter(
+            project_id=project, user_id=user
+        ).exists():
+            raise serializers.ValidationError(
+                "Vous devez être contributeur du projet"
+            )
 
         return data
+
 
 class ProjectDetailSerializer(serializers.ModelSerializer):
     author = serializers.CharField(source='author_id.username', read_only=True)
@@ -205,6 +223,7 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
             ]
 
     def get_contributors(self, obj):
+        # Retourne les contributeurs du projet
         contributors = Contributor.objects.filter(project_id=obj.id)
         return [{
             "id": contrib.user_id.id,
@@ -212,5 +231,6 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
             for contrib in contributors]
 
     def get_comments(self, obj):
+        # Retourne les commentaires associés aux issues du projet
         comments = Comment.objects.filter(issue_id__project_id=obj.id)
         return CommentSerializer(comments, many=True).data
