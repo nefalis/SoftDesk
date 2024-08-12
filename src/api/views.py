@@ -120,6 +120,10 @@ class IssueViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, ContributorPermission]
 
 
+    def perform_create(self, serializer):
+        # Associer l'utilisateur courant comme auteur de l'issue
+        serializer.save(author_id=self.request.user)
+
 class CommentViewSet(viewsets.ModelViewSet):
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer

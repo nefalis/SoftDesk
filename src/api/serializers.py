@@ -16,7 +16,14 @@ class UserSerializer(serializers.ModelSerializer):
             'email',
             'password',
             'can_be_contacted',
-            'can_data_be_shared']
+            'can_data_be_shared'
+            ]
+        
+    def validate_email(self, value):
+        # Vérifie si l'email existe déjà pour un autre utilisateur
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("Un utilisateur avec cet email existe déjà.")
+        return value
 
     def create(self, validated_data):
         password = validated_data.pop('password', None)
@@ -121,32 +128,61 @@ class ContributorSerializer(serializers.ModelSerializer):
 
 
 class IssueSerializer(serializers.ModelSerializer):
+    author_name = serializers.CharField(source='author_id.username', read_only=True)
+    project_name = serializers.CharField(source='project_id.title', read_only=True)
     class Meta:
         model = Issue
         fields = [
             'id',
             'title',
             'description',
-            'contributor_id',
+            'author_id',
+            'author_name',
             'project_id',
+            'project_name',
             'status',
             'priority',
             'tag',
             'time_created'
-            ]
+        ]
+        read_only_fields = ['author_id', 'author_name', 'project_name']
+
+    def validate(self, data):
+        # Vérifier que l'utilisateur est un contributeur du projet
+        project = data.get('project_id')
+        user = self.context['request'].user
+        if not Contributor.objects.filter(project_id=project, user_id=user).exists():
+            raise serializers.ValidationError("Vous devez être contributeur du projet pour créer ou modifier une issue.")
+        
+        return data
 
 
 class CommentSerializer(serializers.ModelSerializer):
+    author_name = serializers.CharField(source='author_id.username', read_only=True)
+    issue_title = serializers.CharField(source='issue_id.title', read_only=True)
     class Meta:
         model = Comment
         fields = [
             'id',
             'description',
             'time_created',
-            'contributor_id',
-            'issue_id'
+            'author_id',
+            'author_name',
+            'issue_id',
+            'issue_title'
             ]
+        read_only_fields = ['author_id', 'author_name', 'issue_title']
 
+    def validate(self, data):
+        # Vérifier que l'utilisateur est un contributeur du projet
+        user = self.context['request'].user
+        issue = data.get('issue_id')
+        project = issue.project_id
+
+        if not Contributor.objects.filter(project_id=project, user_id=user).exists():
+            raise serializers.ValidationError("Vous devez être contributeur du projet pour ajouter un commentaire.")
+
+        return data
 
 class ProjectDetailSerializer(serializers.ModelSerializer):
     author = serializers.CharField(source='author_id.username', read_only=True)
