@@ -178,6 +178,9 @@ class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     permission_classes = [IsAuthenticated, ContributorPermission]
 
+    def perform_create(self, serializer):
+        serializer.save(author_id=self.request.user)
+
 
 class ProjectListView(generics.ListAPIView):
     """

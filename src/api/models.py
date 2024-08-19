@@ -1,3 +1,4 @@
+import uuid
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.core.validators import MinValueValidator
@@ -50,7 +51,9 @@ class Issue(models.Model):
 
 
 class Comment(models.Model):
+    id = models.AutoField(primary_key=True)
+    uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     description = models.TextField()
     time_created = models.DateTimeField(auto_now_add=True)
     author_id = models.ForeignKey(User, on_delete=models.CASCADE)
-    issue_id = models.ForeignKey(Issue, on_delete=models.CASCADE)
+    issue_id = models.ForeignKey('Issue', on_delete=models.CASCADE)

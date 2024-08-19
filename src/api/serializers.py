@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from rest_framework.reverse import reverse
 from django.contrib.auth.password_validation import validate_password
 from .models import User, Project, Contributor, Issue, Comment
 
@@ -172,34 +173,49 @@ class CommentSerializer(serializers.ModelSerializer):
     issue_title = serializers.CharField(
         source='issue_id.title', read_only=True
         )
+    issue_link = serializers.SerializerMethodField()
 
     class Meta:
         model = Comment
         fields = [
             'id',
+            'uuid',
             'description',
             'time_created',
             'author_id',
             'author_name',
             'issue_id',
-            'issue_title'
-            ]
+            'issue_title',
+            'issue_link'
+        ]
         read_only_fields = ['author_id', 'author_name', 'issue_title']
 
+    def get_issue_link(self, obj):
+        request = self.context.get('request')
+        issue_link = reverse(
+            'issue-detail', kwargs={'pk': obj.issue_id.pk}, request=request
+            )
+        return issue_link
+
     def validate(self, data):
-        # Vérifier que l'utilisateur est un contributeur du projet
         user = self.context['request'].user
         issue = data.get('issue_id')
-        project = issue.project_id
 
+        # Vérifier que l'utilisateur est contributeur du projet lié à l'issue
+        project = issue.project_id
         if not Contributor.objects.filter(
             project_id=project, user_id=user
         ).exists():
             raise serializers.ValidationError(
-                "Vous devez être contributeur du projet"
+                "Vous devez être contributeur du projet pour commenter."
             )
 
         return data
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        validated_data['author_id'] = user
+        return super().create(validated_data)
 
 
 class ProjectDetailSerializer(serializers.ModelSerializer):
