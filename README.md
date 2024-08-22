@@ -60,11 +60,11 @@ Voici les endpoints disponibles dans l'application :
 - GET : http://127.0.0.1:8000/api/projects/project_summary/
 
 ### Utilisateurs
-- POST http://127.0.0.1:8000/api/users/ : Créer un utilisateur
-- GET http://127.0.0.1:8000/api/users/ : Liste des utilisateurs
-- PUT http://127.0.0.1:8000/api/users/{id}/ : Modifier un utilisateur
-- DELETE http://127.0.0.1:8000/api/users/{id}/: Supprimer un utilisateur
-- DELETE http://127.0.0.1:8000/api/users/{id}/delete_user/ : Supprimer un utilisateur avec suppression des projets et contributions
+- POST http://127.0.0.1:8000/api_user/users/ : Créer un utilisateur
+- GET http://127.0.0.1:8000/api_user/users/ : Liste des utilisateurs
+- PUT http://127.0.0.1:8000/api_user/users/{id}/ : Modifier un utilisateur
+- DELETE http://127.0.0.1:8000/api_user/users/{id}/: Supprimer un utilisateur
+- DELETE http://127.0.0.1:8000/api_user/users/{id}/delete_user/ : Supprimer un utilisateur avec suppression des projets et contributions
   -> droit a l'oubli
 
 ### Projets
