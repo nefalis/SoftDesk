@@ -50,9 +50,9 @@ Voici un exemple d'utilisateur :
 
 * Mot de passe : Tfe45+ef
 
-* Utilisateur : Bob
+* Utilisateur : Julie
 
-* Mot de passe : Bob21p+6
+* Mot de passe : 21Ju6+pm
 
 
 Voici les endpoints disponibles dans l'application :
