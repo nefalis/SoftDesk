@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'api',
+    'api_user',
     "rest_framework_simplejwt",
 ]
 
@@ -140,4 +141,4 @@ SIMPLE_JWT = {
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
 }
 
-AUTH_USER_MODEL = 'api.User'
+AUTH_USER_MODEL  = 'api_user.User'
