@@ -1,7 +1,5 @@
 import uuid
-from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django.core.validators import MinValueValidator
 from api_user.models import User
 
 
